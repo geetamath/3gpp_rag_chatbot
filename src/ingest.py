@@ -221,7 +221,11 @@ def load_chunks(path=config.CHUNKS_PATH):
 
 if __name__ == "__main__":
     # Prefer real docs in data/raw; fall back to the synthetic demo corpus.
-    source_dir = config.RAW_DIR if os.listdir(config.RAW_DIR) else config.SAMPLE_DIR
+    source_dir = (
+        config.RAW_DIR
+        if os.path.isdir(config.RAW_DIR) and os.listdir(config.RAW_DIR)
+        else config.SAMPLE_DIR
+    )
     print(f"[ingest] ingesting from: {source_dir}")
     chunks = ingest_directory(source_dir)
     save_chunks(chunks)
