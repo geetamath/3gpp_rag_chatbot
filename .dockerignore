@@ -10,4 +10,5 @@ data/processed/*
 data/index/*
 webapp/frontend/build
 webapp/frontend/node_modules
+webapp/frontend/.env.local
 *.md
