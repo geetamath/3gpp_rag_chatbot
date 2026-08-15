@@ -17,6 +17,13 @@ import sys
 
 import gradio as gr
 
+try:
+    import spaces  # only available when running on a Hugging Face Space
+    HAS_SPACES = True
+except ImportError:
+    HAS_SPACES = False
+
+
 import config
 from src.pipeline import RAGPipeline
 
@@ -32,6 +39,12 @@ if not os.path.exists(config.METADATA_PATH):
 pipeline = RAGPipeline()
 
 
+def _gpu_noop(fn):
+    """Pass-through decorator used when not running on a HF ZeroGPU Space."""
+    return fn
+
+
+@(spaces.GPU if HAS_SPACES else _gpu_noop)
 def ask(question, history):
     if not question or not question.strip():
         return "", history
