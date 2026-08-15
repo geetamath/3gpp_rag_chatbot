@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: 3gpp-rag-chatbot
+    env: docker
+    dockerfilePath: ./Dockerfile
+    plan: free
+    healthCheckPath: /api/health
+    envVars:
+      - key: RAG_EMBEDDING_BACKEND
+        value: tfidf          # switch to sentence-transformers once you have real docs + enough RAM
+      - key: RAG_LLM_BACKEND
+        value: groq
+      - key: RAG_GROQ_MODEL
+        value: llama-3.1-8b-instant
+      - key: GROQ_API_KEY
+        sync: false          # set this in the Render dashboard, never commit it

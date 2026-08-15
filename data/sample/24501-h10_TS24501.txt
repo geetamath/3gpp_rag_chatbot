@@ -1,0 +1,42 @@
+3GPP TS 24.501 V17.6.0 Release 17
+Non-Access-Stratum (NAS) protocol for 5G System (5GS)
+
+5 Elementary procedures for 5GS mobility management
+
+5.5 Registration procedure
+
+5.5.1 General
+The registration procedure is used for initial registration, mobility registration update, and
+periodic registration update. The UE initiates the registration procedure by sending a
+REGISTRATION REQUEST message to the AMF. The REGISTRATION REQUEST message
+shall include the 5GS registration type IE, which indicates whether the registration is an
+initial registration, a mobility registration update, a periodic registration update or an
+emergency registration.
+
+5.5.1.2 Registration procedure for initial registration
+The UE initiates the registration procedure for initial registration by sending a
+REGISTRATION REQUEST message to the AMF, starting timer T3510 and entering state
+5GMM-REGISTRATION-INITIATED. Upon receipt of the REGISTRATION REQUEST message,
+if authentication or security procedures are required, the AMF shall initiate NAS
+authentication and NAS security mode control procedures. Upon completion of the
+authentication and security procedures, the AMF shall send a REGISTRATION ACCEPT
+message to the UE if the registration request is accepted.
+
+5.5.2 De-registration procedure
+
+5.5.2.1 General
+The de-registration procedure is used by the UE to detach from the 5G core network, or by
+the network to inform the UE that it is detached from the 5G core network, or to request the
+UE to re-attach to the network and re-establish the PDU session.
+
+6 Elementary procedures for 5GS session management
+
+6.3 PDU session establishment procedure
+
+6.3.1 General
+The PDU session establishment procedure is used by the UE to establish a new PDU session,
+and initiated by the UE sending a PDU SESSION ESTABLISHMENT REQUEST message.
+The UE shall not trigger a PDU session establishment procedure for the same PDU session ID
+if there is a PDU session establishment procedure for that PDU session ID already ongoing.
+The UE shall include a PDU session ID in the PDU SESSION ESTABLISHMENT REQUEST
+message that is not used by another active PDU session in the UE.

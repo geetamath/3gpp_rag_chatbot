@@ -1,0 +1,13 @@
+.git
+.gitignore
+**/node_modules
+**/__pycache__
+**/*.pyc
+.pytest_cache
+data/raw/*
+!data/raw/.gitkeep
+data/processed/*
+data/index/*
+webapp/frontend/build
+webapp/frontend/node_modules
+*.md

@@ -1,0 +1,61 @@
+3GPP TS 23.501 V17.5.0 Release 17
+System architecture for the 5G System (5GS)
+
+5 System Architecture concepts
+
+5.1 General concepts
+The 5G System architecture is defined to support data connectivity and services enabling
+deployments to use techniques such as Network Function virtualization and Software
+Defined Networking. The 5G System architecture shall be service based.
+
+5.2 Network Function
+
+5.2.1 General
+A Network Function (NF) is a processing function in a network which has defined functional
+behaviour and defined interfaces. NFs can be implemented either as a network element on
+a dedicated hardware, as a software instance running on dedicated hardware, or as a
+virtualised function instantiated on an appropriate platform.
+
+5.2.2 Access and Mobility Management Function (AMF)
+The Access and Mobility Management Function (AMF) includes the following functionality.
+Some of the functionality is supported in a single instance of the AMF: termination of RAN
+CP interface (N2); termination of NAS (N1); NAS ciphering and integrity protection;
+registration management; connection management; reachability management; mobility
+management; lawful intercept for AMF events and interface to LI system; provision of
+transport for SM messages between UE and SMF; access authentication; access authorization.
+The AMF also includes network slice selection functionality.
+
+5.2.3 Session Management Function (SMF)
+
+5.2.3.1 Registration procedure
+The Session Management Function (SMF) includes the following functionality. Session
+Establishment, modification and release, including tunnel maintenance between UPF and
+AN node. UE IP address allocation and management, including optional Authorization
+functions. Selection and control of UP function, including controlling the UPF for proper
+routing of traffic to the appropriate destination.
+During the registration procedure with the 5G core network, the UE first sends a
+Registration Request message over NAS to the AMF via the gNB. The AMF selects an SMF
+if a PDU Session establishment is requested as part of registration, and forwards relevant
+session management information to the selected SMF.
+
+5.2.3.2 PDU Session establishment
+The User Equipment (UE) initiates the PDU Session Establishment procedure by the
+transmission of a PDU SESSION ESTABLISHMENT REQUEST message. The AMF, after
+receiving the PDU Session Establishment Request from the UE, determines that the message
+corresponds to a request for a new PDU Session and selects an SMF as described in clause
+5.2.3.1. The SMF, upon reception of the message, may perform Secondary authorization or
+authentication of the PDU session establishment.
+
+5.2.4 User Plane Function (UPF)
+The User Plane Function (UPF) includes the following functionality: anchor point for
+Intra-/Inter-RAT mobility; external PDU session point of interconnect to Data Network;
+packet routing and forwarding; packet inspection and User plane part of Policy rule
+enforcement; traffic usage reporting.
+
+5.3 Network Slicing
+
+5.3.1 General concept
+Network slicing allows the 5GS to support a wide variety of use cases which have partly
+very diverse requirements, e.g. in the areas of functionality, performance and isolation.
+A Network Slice is defined within a PLMN and shall include the Core Network Control
+Plane and User Plane Network Functions.
