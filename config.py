@@ -36,7 +36,7 @@ OLLAMA_HOST = os.environ.get("RAG_OLLAMA_HOST", "http://localhost:11434")
 # needed -- used for the deployed public web app. Get a free key at
 # https://console.groq.com
 GROQ_API_KEY = os.environ.get("GROQ_API_KEY", "")
-GROQ_MODEL = os.environ.get("RAG_GROQ_MODEL", "llama-3.1-8b-instant")
+GROQ_MODEL = os.environ.get("RAG_GROQ_MODEL", "openai/gpt-oss-20b")
 
 # ---- Paths ----------------------------------------------------------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
