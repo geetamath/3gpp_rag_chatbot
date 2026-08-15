@@ -33,6 +33,22 @@ sys.path.insert(0, PROJECT_ROOT)
 import config
 from src.pipeline import RAGPipeline
 
+# ---------------------------------------------------------------------------
+# Auto-build the index on startup if it isn't already there. This makes the
+# service self-healing on platforms without shell/one-off-job access (e.g.
+# Render free tier), and after every restart on ephemeral-disk free tiers,
+# without needing a manual `python -m src.ingest` step.
+# ---------------------------------------------------------------------------
+if not os.path.exists(config.METADATA_PATH):
+    import subprocess
+    print("[main] no index found -- running ingest + build_index ...", flush=True)
+    try:
+        subprocess.run([sys.executable, "-m", "src.ingest"], check=True, cwd=PROJECT_ROOT)
+        subprocess.run([sys.executable, "-m", "src.build_index"], check=True, cwd=PROJECT_ROOT)
+        print("[main] index build complete.", flush=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[main] index build FAILED: {e}", flush=True)
+
 app = FastAPI(title="3GPP Evidence RAG API", version="1.0.0")
 
 app.add_middleware(
