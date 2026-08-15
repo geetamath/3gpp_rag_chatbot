@@ -1,34 +1,34 @@
----
+﻿---
 title: 3GPP RAG Chatbot
-emoji: 📡
+emoji: ðŸ“¡
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
-sdk_version: "4.44.0"
+sdk_version: "5.9.1"
 app_file: gradio_app.py
 pinned: false
 ---
 
-# 3GPP RAG Chatbot — Low/Near-Zero Hallucination
+# 3GPP RAG Chatbot â€” Low/Near-Zero Hallucination
 
 A retrieval-augmented chatbot that answers questions **only** from ingested
 3GPP specification documents, with a deterministic **evidence-validation
 gate** that refuses to answer rather than guess when retrieval confidence
 is low. Every answer carries a TS number, release, clause, and page citation
-that is verified — not just prompted for.
+that is verified â€” not just prompted for.
 
 ## Why this isn't "just RAG"
 
 Prompting an LLM with "only use the context" is not sufficient to claim
-near-zero hallucination — LLMs drift off context regardless of instructions.
+near-zero hallucination â€” LLMs drift off context regardless of instructions.
 This project enforces groundedness with **code, not prompts alone**, at two
 points:
 
-1. **Evidence gate (pre-generation)** — `src/evidence_gate.py`. Runs BEFORE
+1. **Evidence gate (pre-generation)** â€” `src/evidence_gate.py`. Runs BEFORE
    the LLM is called. Uses two independent, non-generative signals
    (reranker score + query-term coverage) to decide whether there's enough
    evidence to even attempt an answer. If not: refuse, no LLM call happens.
-2. **Claim verification (post-generation)** — `src/verify.py`. After the LLM
+2. **Claim verification (post-generation)** â€” `src/verify.py`. After the LLM
    answers, every claimed sentence is checked for lexical support against
    the specific chunk it cites. Unsupported claims are stripped from the
    final answer, not shipped.
@@ -60,8 +60,8 @@ points:
 | LLM | deterministic extractive "echo" (quotes evidence sentences only) | Llama 3 / Mistral via **Ollama**, running locally |
 | Purpose | prove pipeline wiring + gate logic offline | your actual graded submission |
 
-Demo mode exists so the entire pipeline — ingestion, chunking, hybrid
-retrieval, evidence gating, generation, verification — can be run and tested
+Demo mode exists so the entire pipeline â€” ingestion, chunking, hybrid
+retrieval, evidence gating, generation, verification â€” can be run and tested
 without internet access or a GPU. **Switch to production mode for your
 actual submission**, since a graded chatbot should use a real LLM.
 
@@ -81,11 +81,11 @@ ollama serve
 ### 1. Put your real 3GPP documents in `data/raw/`
 Download `.docx` versions from the 3GPP specification portal
 (https://www.3gpp.org/specifications). `.docx` is strongly preferred over
-`.pdf` — 3GPP publishes both, and `.docx` preserves heading/table structure
+`.pdf` â€” 3GPP publishes both, and `.docx` preserves heading/table structure
 far better, which directly reduces chunking-induced hallucination.
 If `data/raw/` is empty, the pipeline falls back to the synthetic sample
 corpus in `data/sample/` (two short excerpts styled on TS 23.501 / TS 24.501,
-used only for demoing the pipeline — not a substitute for real specs).
+used only for demoing the pipeline â€” not a substitute for real specs).
 
 ### 2. Ingest, index, and run
 
@@ -116,10 +116,10 @@ python3 -m pytest tests/ -v
 ## Evaluation results (demo mode, synthetic sample corpus)
 
 9 automated tests in `tests/test_pipeline_demo.py`:
-- 4 in-domain questions → must be **answered with a valid TS citation**
+- 4 in-domain questions â†’ must be **answered with a valid TS citation**
 - 4 clearly out-of-domain questions (capital of France, football World Cup,
-  boiling point of mercury, Romeo and Juliet) → must be **refused**
-- 1 citation-integrity check → every returned citation must trace to a real
+  boiling point of mercury, Romeo and Juliet) â†’ must be **refused**
+- 1 citation-integrity check â†’ every returned citation must trace to a real
   indexed chunk_id
 
 **Result: 8/9 passed.** The one failure ("What is network slicing?", scored
@@ -128,7 +128,7 @@ mode: TF-IDF + lexical-overlap reranking has weak discriminative power on a
 tiny 13-chunk synthetic corpus, where in-domain and out-of-domain scores sit
 close together. This is *exactly* the argument for switching to
 sentence-transformer embeddings + a cross-encoder reranker (production mode)
-before your final submission — real dense embeddings separate these cases
+before your final submission â€” real dense embeddings separate these cases
 much more cleanly. **Don't quietly raise/lower the threshold to force this
 test to pass; recalibrate it against your real corpus's score distribution
 once you're in production mode** (see the comment in `config.py`).
@@ -137,17 +137,17 @@ once you're in production mode** (see the comment in `config.py`).
 
 1. Drop your actual 10-30 TS documents (`.docx`) into `data/raw/`.
 2. Switch both backends to production mode (see above).
-3. Recalibrate `config.MIN_EVIDENCE_SCORE` — build a small labelled set of
+3. Recalibrate `config.MIN_EVIDENCE_SCORE` â€” build a small labelled set of
    20-30 questions (half answerable from your corpus, half not) and pick the
    threshold that best separates them. This is the number you'll want to
-   defend/justify in your report — "how did you choose the confidence
+   defend/justify in your report â€” "how did you choose the confidence
    threshold" is a very likely review question.
 4. Re-run `tests/test_pipeline_demo.py` against your real corpus (swap the
    sample-corpus questions for ones relevant to your actual TS documents).
 
 ## Full-stack web app (FastAPI + React)
 
-There's also a deployable web version in `webapp/` — a FastAPI backend
+There's also a deployable web version in `webapp/` â€” a FastAPI backend
 (`webapp/backend/main.py`) wrapping this same pipeline behind a JSON API,
 and a React frontend (`webapp/frontend/`) with a dark evidence-workbench UI:
 chat, live citations, source library, and retrieval telemetry, all backed by
@@ -167,7 +167,7 @@ npm start   # opens http://localhost:3000, talks to :8000 via .env.local
 ```
 
 To deploy it publicly with a real LLM (Groq's free hosted Llama), see
-**`DEPLOYMENT.md`** — covers Hugging Face Spaces, Render, and Railway, all
+**`DEPLOYMENT.md`** â€” covers Hugging Face Spaces, Render, and Railway, all
 using the included `Dockerfile` (single container serves both API and UI).
 
 ## File map
@@ -186,4 +186,5 @@ tests/test_pipeline_demo.py automated gate-correctness tests
 data/sample/                synthetic offline demo corpus (2 files)
 data/raw/                   <- put your real 3GPP .docx files here
 ```
+
 
