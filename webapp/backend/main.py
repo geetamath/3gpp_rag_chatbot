@@ -104,6 +104,9 @@ async def health():
         "embedding_backend": config.EMBEDDING_BACKEND,
         "llm_backend": config.LLM_BACKEND,
         "mode": "real-hybrid-retrieval+evidence-gate",
+        "groq_key_present": bool(config.GROQ_API_KEY),
+        "groq_key_length": len(config.GROQ_API_KEY),
+        "groq_key_prefix": config.GROQ_API_KEY[:6] if config.GROQ_API_KEY else None,
     }
 
 
