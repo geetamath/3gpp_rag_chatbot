@@ -1,3 +1,13 @@
+---
+title: 3GPP RAG Chatbot
+emoji: 📡
+colorFrom: blue
+colorTo: indigo
+sdk: docker
+app_port: 8000
+pinned: false
+---
+
 # 3GPP RAG Chatbot — Low/Near-Zero Hallucination
 
 A retrieval-augmented chatbot that answers questions **only** from ingested
@@ -175,3 +185,4 @@ tests/test_pipeline_demo.py automated gate-correctness tests
 data/sample/                synthetic offline demo corpus (2 files)
 data/raw/                   <- put your real 3GPP .docx files here
 ```
+
