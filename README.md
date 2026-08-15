@@ -1,6 +1,5 @@
 ﻿---
 title: 3GPP RAG Chatbot
-emoji: ðŸ“¡
 colorFrom: blue
 colorTo: indigo
 sdk: gradio
@@ -186,5 +185,6 @@ tests/test_pipeline_demo.py automated gate-correctness tests
 data/sample/                synthetic offline demo corpus (2 files)
 data/raw/                   <- put your real 3GPP .docx files here
 ```
+
 
 
