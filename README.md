@@ -3,8 +3,9 @@ title: 3GPP RAG Chatbot
 emoji: 📡
 colorFrom: blue
 colorTo: indigo
-sdk: docker
-app_port: 8000
+sdk: gradio
+sdk_version: "4.44.0"
+app_file: gradio_app.py
 pinned: false
 ---
 

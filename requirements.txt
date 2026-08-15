@@ -17,3 +17,5 @@ faiss-cpu>=1.7.4
 
 # --- Optional: simple web UI ---
 gradio>=4.0
+requests>=2.31.0
+
