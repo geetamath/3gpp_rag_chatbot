@@ -22,6 +22,7 @@ import re
 import sys
 import os
 import urllib.request
+import urllib.error
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
@@ -39,6 +40,12 @@ provided CONTEXT excerpts from 3GPP specifications. Follow these rules strictly:
     "claims": [{"text": "<claim sentence>", "chunk_id": "<id used as support>"}],
     "insufficient_evidence": <true|false>}
 """
+
+# Shared User-Agent for all outbound LLM HTTP calls. Cloudflare (which sits
+# in front of Groq, and potentially other hosted backends in future) blocks
+# the default Python-urllib/x.y User-Agent before the request is even
+# authenticated, so every urllib.request.Request in this file must set one.
+_USER_AGENT = "3gpp-rag-chatbot/1.0 (+https://console.groq.com)"
 
 
 def _format_context(evidence):
@@ -66,10 +73,26 @@ def _call_ollama(question, evidence):
     req = urllib.request.Request(
         f"{config.OLLAMA_HOST}/api/generate",
         data=payload,
-        headers={"Content-Type": "application/json"},
+        headers={
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": _USER_AGENT,
+        },
     )
-    with urllib.request.urlopen(req, timeout=120) as resp:
-        body = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=120) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        raise RuntimeError(
+            f"Ollama request failed ({e.code} {e.reason}). "
+            f"Is Ollama running at {config.OLLAMA_HOST}? Detail: {detail}"
+        ) from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(
+            f"Could not reach Ollama at {config.OLLAMA_HOST}: {e.reason}"
+        ) from e
+
     raw = body.get("response", "{}")
     return _safe_parse_json(raw)
 
@@ -106,11 +129,38 @@ def _call_groq(question, evidence):
         data=payload,
         headers={
             "Content-Type": "application/json",
+            "Accept": "application/json",
+            "User-Agent": _USER_AGENT,
             "Authorization": f"Bearer {config.GROQ_API_KEY}",
         },
     )
-    with urllib.request.urlopen(req, timeout=60) as resp:
-        body = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            body = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as e:
+        detail = e.read().decode("utf-8", errors="replace")
+        if e.code == 401:
+            raise RuntimeError(
+                "Groq rejected the request (401 Unauthorized). "
+                "Check that GROQ_API_KEY is correct and active."
+            ) from e
+        if e.code == 403:
+            raise RuntimeError(
+                f"Groq/Cloudflare returned 403 Forbidden. This usually means "
+                f"the request was blocked before reaching the API (e.g. "
+                f"missing/blocked User-Agent, or a WAF rule). Detail: {detail}"
+            ) from e
+        if e.code == 429:
+            raise RuntimeError(
+                "Groq rate limit hit (429). Back off and retry -- "
+                "conserve free-tier credits by caching/deduping calls."
+            ) from e
+        raise RuntimeError(
+            f"Groq request failed ({e.code} {e.reason}). Detail: {detail}"
+        ) from e
+    except urllib.error.URLError as e:
+        raise RuntimeError(f"Could not reach Groq API: {e.reason}") from e
+
     raw = body["choices"][0]["message"]["content"]
     return _safe_parse_json(raw)
 
