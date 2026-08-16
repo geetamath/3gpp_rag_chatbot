@@ -40,6 +40,9 @@ CLAUSE_RE = re.compile(r"^(?P<num>\d+(?:\.\d+){0,5})\s+(?P<title>[A-Z][^\n]{2,12
 
 # Matches filenames / headers like "TS 23.501" or "3GPP TS 24.301 V17.5.0"
 TS_RE = re.compile(r"(TS|TR)\s?(\d{2}\.\d{3})")
+# Matches official 3GPP archive filenames like "23501-k20.docx" -- 5
+# consecutive digits = series (2) + number (3), no literal "TS" prefix.
+TS_FILENAME_RE = re.compile(r"(?<!\d)(\d{2})(\d{3})[-_]")
 RELEASE_RE = re.compile(r"Rel(?:ease)?[-\s]?(\d{1,2})", re.IGNORECASE)
 
 
@@ -54,6 +57,10 @@ def _infer_ts_and_release(filename: str, text_head: str):
     m = TS_RE.search(filename) or TS_RE.search(text_head)
     if m:
         ts_number = f"{m.group(1)} {m.group(2)}"
+    if not ts_number:
+        m3 = TS_FILENAME_RE.search(filename)
+        if m3:
+            ts_number = f"TS {m3.group(1)}.{m3.group(2)}"
     m2 = RELEASE_RE.search(filename) or RELEASE_RE.search(text_head)
     if m2:
         release = f"Rel-{m2.group(1)}"
@@ -160,7 +167,7 @@ def chunk_clause(clause_id, clause_title, body_text, page):
 def ingest_file(path: str):
     filename = os.path.basename(path)
     raw_text = load_raw_text(path)
-    ts_number, release = _infer_ts_and_release(filename, raw_text[:500])
+    ts_number, release = _infer_ts_and_release(filename, raw_text[:5000])
 
     clauses = split_into_clauses(raw_text)
     chunks = []
