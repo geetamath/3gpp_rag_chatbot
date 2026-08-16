@@ -27,8 +27,7 @@ COPY config.py .
 COPY src/ ./src/
 COPY webapp/backend/ ./webapp/backend/
 COPY data/sample/ ./data/sample/
-# data/raw/ is where you'd normally add real 3GPP docs at build time --
-# create it empty here so ingest.py's directory-listing check doesn't fail
+COPY data/raw/ ./data/raw/
 RUN mkdir -p data/raw data/processed data/index
 
 # Bring in the built frontend from stage 1
