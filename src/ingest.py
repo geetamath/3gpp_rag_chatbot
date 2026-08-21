@@ -1,29 +1,5 @@
 """
 Step 1 + 2: Document Ingestion and Clause-Aware Chunking.
-
-Parses 3GPP-style documents (.docx preferred, .pdf and .txt supported) into
-a flat list of chunks, each carrying the metadata needed for citation and
-hallucination-gating downstream:
-
-    {
-        "chunk_id": str,
-        "ts_number": "TS 23.501",
-        "release": "Rel-17",
-        "clause_id": "5.2.3.1",
-        "clause_title": "Registration procedure",
-        "breadcrumb": "5.2.3.1 Registration procedure",
-        "page": 42,                # best-effort; None for docx without page breaks
-        "text": "...",
-        "source_file": "23501-h10.docx"
-    }
-
-Design notes (why this, not naive fixed-window chunking):
-  - We chunk on CLAUSE boundaries (e.g. "5.2.3.1") because that's the semantic
-    unit 3GPP itself authors in -- splitting mid-clause is what causes an LLM
-    to answer from a fragment and hallucinate the rest.
-  - Clauses longer than MAX_CHUNK_TOKENS are sub-chunked with overlap, but every
-    sub-chunk keeps the full breadcrumb + a back-pointer to the parent clause id
-    so the retriever can expand context at answer time if needed.
 """
 
 import os
@@ -35,36 +11,66 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import config
 
-# Matches 3GPP clause headings like "5.2.3.1 Registration procedure"
 CLAUSE_RE = re.compile(r"^(?P<num>\d+(?:\.\d+){0,5})\s+(?P<title>[A-Z][^\n]{2,120})$")
-
-# Matches filenames / headers like "TS 23.501" or "3GPP TS 24.301 V17.5.0"
 TS_RE = re.compile(r"(TS|TR)\s?(\d{2}\.\d{3})")
-# Matches official 3GPP archive filenames like "23501-k20.docx" -- 5
-# consecutive digits = series (2) + number (3), no literal "TS" prefix.
 TS_FILENAME_RE = re.compile(r"(?<!\d)(\d{2})(\d{3})[-_]")
+RELEASE_PAREN_RE = re.compile(r"\(Release\s+(\d{1,2})\)", re.IGNORECASE)
 RELEASE_RE = re.compile(r"Rel(?:ease)?[-\s]?(\d{1,2})", re.IGNORECASE)
+_TITLE_BOILERPLATE_RE = re.compile(
+    r"^\s*(3GPP|3rd Generation|Technical Specification|Stage\s+\d|"
+    r"TS\s?\d|TR\s?\d|V\d+\.\d+\.\d+|\(Release|\d{1,4}\s*$)",
+    re.IGNORECASE,
+)
 
 
 def _approx_tokens(text: str) -> int:
-    # cheap approximation: ~0.75 words per token is backwards; use whitespace
-    # word count as a stable, dependency-free proxy for token count.
     return max(1, len(text.split()))
 
 
-def _infer_ts_and_release(filename: str, text_head: str):
+def _infer_ts_and_release(filename: str, text_head: str, header_text: str = ""):
     ts_number, release = None, None
-    m = TS_RE.search(filename) or TS_RE.search(text_head)
+    m = TS_RE.search(filename) or TS_RE.search(header_text) or TS_RE.search(text_head)
     if m:
         ts_number = f"{m.group(1)} {m.group(2)}"
     if not ts_number:
         m3 = TS_FILENAME_RE.search(filename)
         if m3:
             ts_number = f"TS {m3.group(1)}.{m3.group(2)}"
-    m2 = RELEASE_RE.search(filename) or RELEASE_RE.search(text_head)
+
+    m2 = (
+        RELEASE_PAREN_RE.search(header_text)
+        or RELEASE_RE.search(header_text)
+        or RELEASE_PAREN_RE.search(text_head)
+        or RELEASE_RE.search(filename)
+    )
     if m2:
         release = f"Rel-{m2.group(1)}"
     return ts_number or "UNKNOWN", release or "UNKNOWN"
+
+
+def _infer_doc_title(text_head: str) -> str:
+    m = RELEASE_PAREN_RE.search(text_head)
+    if not m:
+        return ""
+    window_start = max(0, m.start() - 400)
+    window_end = min(len(text_head), m.end() + 400)
+    before = text_head[window_start:m.start()]
+    after = text_head[m.end():window_end]
+    before_lines = [ln.strip() for ln in before.splitlines() if ln.strip()]
+    after_lines = [ln.strip() for ln in after.splitlines() if ln.strip()]
+    candidates = []
+    for i in range(max(len(before_lines), len(after_lines))):
+        if i < len(before_lines):
+            candidates.append(before_lines[-(i + 1)])
+        if i < len(after_lines):
+            candidates.append(after_lines[i])
+    for line in candidates:
+        if _TITLE_BOILERPLATE_RE.match(line):
+            continue
+        if len(line) < 8:
+            continue
+        return line.rstrip(";").strip()[:200]
+    return ""
 
 
 def _read_docx(path: str) -> str:
@@ -75,12 +81,29 @@ def _read_docx(path: str) -> str:
         t = para.text.strip()
         if t:
             lines.append(t)
-    # also pull table content -- tables carry a lot of normative 3GPP content
     for table in doc.tables:
         for row in table.rows:
             cells = [c.text.strip() for c in row.cells if c.text.strip()]
             if cells:
                 lines.append(" | ".join(cells))
+    return "\n".join(lines)
+
+
+def _read_docx_header(path: str) -> str:
+    """Read only the page header text (not body/ToC) -- this is where 3GPP
+    puts the reliable 'Release N' + 'V<major>.x.x' line, avoiding false
+    matches on body/ToC lines like 'NAS signalling connection Release  111'
+    (a heading literally ending in the word 'Release', followed by a page
+    number that a loose body-text regex can mistake for a release number).
+    """
+    from docx import Document
+    doc = Document(path)
+    lines = []
+    for section in doc.sections:
+        for para in section.header.paragraphs:
+            t = para.text.strip()
+            if t:
+                lines.append(t)
     return "\n".join(lines)
 
 
@@ -93,7 +116,7 @@ def _read_pdf(path: str) -> str:
         for line in text.split("\n"):
             line = line.strip()
             if line:
-                lines.append(f"{line}\x00PAGE{i+1}")  # embed page marker
+                lines.append(f"{line}\x00PAGE{i+1}")
     return "\n".join(lines)
 
 
@@ -114,7 +137,6 @@ def load_raw_text(path: str) -> str:
 
 
 def split_into_clauses(raw_text: str):
-    """Return list of (clause_id, clause_title, body_text, page)."""
     clauses = []
     current = {"num": "0", "title": "Preamble", "lines": [], "page": None}
 
@@ -144,7 +166,6 @@ def split_into_clauses(raw_text: str):
 
 
 def chunk_clause(clause_id, clause_title, body_text, page):
-    """Sub-chunk a clause if it's too long, preserving breadcrumb + overlap."""
     breadcrumb = f"{clause_id} {clause_title}".strip()
     n_tokens = _approx_tokens(body_text)
 
@@ -167,13 +188,23 @@ def chunk_clause(clause_id, clause_title, body_text, page):
 def ingest_file(path: str):
     filename = os.path.basename(path)
     raw_text = load_raw_text(path)
-    ts_number, release = _infer_ts_and_release(filename, raw_text[:5000])
+
+    header_text = ""
+    if os.path.splitext(filename)[1].lower() == ".docx":
+        try:
+            header_text = _read_docx_header(path)
+        except Exception as e:
+            print(f"[ingest] WARNING: could not read header for {filename}: {e}", flush=True)
+
+    ts_number, release = _infer_ts_and_release(filename, raw_text[:20000], header_text)
+    doc_title = _infer_doc_title(raw_text[:20000])
 
     clauses = split_into_clauses(raw_text)
+
     chunks = []
     for clause_id, clause_title, body_text, page in clauses:
         if _approx_tokens(body_text) < 5:
-            continue  # skip near-empty clauses (headers with no body etc.)
+            continue
         for sub in chunk_clause(clause_id, clause_title, body_text, page):
             uid_src = f"{filename}|{sub['clause_id']}|{sub['text'][:50]}"
             chunk_id = hashlib.sha1(uid_src.encode()).hexdigest()[:16]
@@ -181,6 +212,7 @@ def ingest_file(path: str):
                 "chunk_id": chunk_id,
                 "ts_number": ts_number,
                 "release": release,
+                "doc_title": doc_title,
                 "clause_id": sub["clause_id"],
                 "clause_title": sub["clause_title"],
                 "breadcrumb": sub["breadcrumb"],
@@ -227,7 +259,6 @@ def load_chunks(path=config.CHUNKS_PATH):
 
 
 if __name__ == "__main__":
-    # Prefer real docs in data/raw; fall back to the synthetic demo corpus.
     source_dir = (
         config.RAW_DIR
         if os.path.isdir(config.RAW_DIR) and os.listdir(config.RAW_DIR)
