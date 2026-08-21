@@ -52,7 +52,7 @@ points:
 | Embeddings | TF-IDF (`scikit-learn`) | TF-IDF, or `sentence-transformers` (BAAI/bge-large-en-v1.5) |
 | Vector index | in-memory TF-IDF matrix | TF-IDF, or FAISS |
 | Reranker | lexical (Jaccard) fallback | lexical, or `cross-encoder/ms-marco-MiniLM-L-6-v2` |
-| LLM | deterministic extractive "echo" (quotes evidence sentences only) | Groq-hosted Llama (deployed), or Ollama Llama 3 / Mistral (local) |
+| LLM | deterministic extractive "echo" (quotes evidence sentences only) | Groq-hosted openai/gpt-oss-20b (deployed), or Ollama Llama 3 / Mistral (local) |
 | Purpose | pipeline wiring + gate logic, testable offline with zero downloads | what's actually running behind the live app |
 
 Demo mode exists so the full pipeline - ingestion, chunking, hybrid
