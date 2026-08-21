@@ -10,7 +10,7 @@ that is verified - not just prompted for.
 (Free-tier Render instance - may take up to ~50s to wake up on first request.)
 
 Indexed corpus: TS 23.501 and TS 23.502 (Release 20), 3,844 clause-level
-chunks. LLM: Groq-hosted Llama (`openai/gpt-oss-20b`).
+chunks. LLM: Groq-hosted openai/gpt-oss-20b.
 
 ## Why this isn't "just RAG"
 
@@ -40,7 +40,7 @@ points:
    -> Hybrid retrieval (vector + BM25, merged)                  [src/retriever.py]
    -> Reranker (cross-encoder / lexical fallback)               [src/retriever.py]
    -> Evidence gate (accept / refuse)                           [src/evidence_gate.py]
-   -> LLM (Groq-hosted Llama / Ollama / mock echo)              [src/llm_client.py]
+   -> LLM (Groq-hosted openai/gpt-oss-20b / Ollama / mock echo) [src/llm_client.py]
    -> Claim verification (strip unsupported claims)             [src/verify.py]
    -> Grounded answer + citations                               [src/pipeline.py]
 ```
