@@ -110,6 +110,14 @@ async def health():
     }
 
 
+_KNOWN_TS_TITLES = {
+    "TS 23.501": "System architecture for the 5G System",
+    "TS 23.502": "Procedures for the 5G System",
+    "TS 24.501": "Non-Access-Stratum (NAS) protocol for 5G System",
+    "TS 38.300": "NR and NG-RAN Overall Description",
+}
+
+
 @app.get("/api/sources")
 async def sources():
     """Derives the source list from REAL ingested metadata, not a hardcoded list."""
@@ -120,10 +128,16 @@ async def sources():
     for c in chunks:
         key = c["source_file"]
         if key not in by_file:
+            ts_number = c["ts_number"]
+            subtitle = (
+                c.get("doc_title")
+                or _KNOWN_TS_TITLES.get(ts_number)
+                or c.get("clause_title", "")
+            )
             by_file[key] = {
                 "id": key,
-                "title": c["ts_number"],
-                "subtitle": c.get("clause_title", ""),
+                "title": ts_number,
+                "subtitle": subtitle,
                 "release": c["release"],
                 "chunks": 0,
                 "status": "Indexed",
